@@ -6,7 +6,7 @@ export const COMMAND_RENDER = 'COMMAND_RENDER';
  * @param {String} name name of the Vue component to create
  * @param Vue Vue import
  * @param renderComponent Vue component which will be use by the rendering command handler
- * @param {Array<String>} initProps array of propery names for the renderComponent
+ * @param {Array<String>} props array of property names for the renderComponent
  * @param fsm
  * @param commandHandlers
  * @param effectHandlers
@@ -15,7 +15,7 @@ export const COMMAND_RENDER = 'COMMAND_RENDER';
  * @param {{NO_ACTION, initialEvent, ...}} options
  * @returns {CombinedVueInstance<V extends Vue, Object, Object, Object, Record<never, any>>}
  */
-export function makeVueStateMachine({name, renderComponent, initProps, fsm, commandHandlers, effectHandlers, subjectFactory,
+export function makeVueStateMachine({name, renderComponent, props, fsm, commandHandlers, effectHandlers, subjectFactory,
                                options, Vue}) {
   const eventSubject = subjectFactory();
   const outputSubject = subjectFactory();
@@ -29,7 +29,7 @@ export function makeVueStateMachine({name, renderComponent, initProps, fsm, comm
   };
   const commandHandlersWithRender = Object.assign({}, commandHandlers, vueRenderCommandHandler);
 
-  const initPropsObj = initProps.reduce((acc, key) => (acc[key]=void 0, acc), {});
+  const initPropsObj = props.reduce((acc, key) => (acc[key]=void 0, acc), {});
   const initialData = Object.assign({}, initPropsObj, {
     hasStarted: false,
     next: eventSubject.next,
@@ -45,14 +45,14 @@ export function makeVueStateMachine({name, renderComponent, initProps, fsm, comm
     return app.hasStarted
       ? h(renderComponent, {
       // copy the props from the machine vue component to the render component
-      props : initProps.reduce((acc,key) => (acc[key]=app[key], acc),{})
+      props : props.reduce((acc, key) => (acc[key]=app[key], acc),{})
     }, [])
       : h('div', {}, '')
   }
 
   return Vue.component(name, {
     render,
-    props : initProps,
+    props : props,
     data: function () {
       return initialData
     },
