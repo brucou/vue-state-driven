@@ -1,10 +1,14 @@
 {
+  "private": false,
   "name": "vue-state-driven",
-  "version": "0.2.2",
+  "version": "0.2.3",
   "description": "vue state machine component",
   "main": "dist/vue-state-driven-es.js",
   "module": "dist/vue-state-driven-es.js",
-  "private": false,
+  "files": [
+    "DISCLAIMER",
+    "dist"
+  ],
   "scripts": {
     "dev": "webpack-dev-server --inline --progress --config build/webpack.dev.conf.js",
     "start": "npm runnpm p dev",
