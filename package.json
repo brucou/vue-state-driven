@@ -1,12 +1,13 @@
 {
   "name": "vue-state-driven",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "description": "vue state machine component",
+  "main": "dist/vue-state-driven-es.js",
   "module": "dist/vue-state-driven-es.js",
   "private": false,
   "scripts": {
     "dev": "webpack-dev-server --inline --progress --config build/webpack.dev.conf.js",
-    "start": "npm run dev",
+    "start": "npm runnpm p dev",
     "unit": "jest --config test/unit/jest.conf.js --coverage",
     "test": "npm run unit",
     "prepublish": "npm run build",
