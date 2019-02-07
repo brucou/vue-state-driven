@@ -19,6 +19,7 @@ export function makeVueStateMachine({name, renderComponent, props, fsm, commandH
                                options, Vue}) {
   const eventSubject = subjectFactory();
   const outputSubject = subjectFactory();
+  const next = eventSubject.next.bind(eventSubject);
 
   const vueRenderCommandHandler = {
     [COMMAND_RENDER]: (next, params, effectHandlers, app) => {
@@ -29,10 +30,11 @@ export function makeVueStateMachine({name, renderComponent, props, fsm, commandH
   };
   const commandHandlersWithRender = Object.assign({}, commandHandlers, vueRenderCommandHandler);
 
-  const initPropsObj = props.reduce((acc, key) => (acc[key]=void 0, acc), {});
+  // DOC : `next` is reserved and cannot be used as a property for the render component
+  const initPropsObj = props.concat('next').reduce((acc, key) => (acc[key]=void 0, acc), {});
   const initialData = Object.assign({}, initPropsObj, {
     hasStarted: false,
-    next: eventSubject.next,
+    next,
     eventSubject,
     outputSubject,
     options : Object.assign({}, options),
@@ -72,7 +74,7 @@ export function makeVueStateMachine({name, renderComponent, props, fsm, commandH
           if (action ===this.NO_ACTION) return;
           const { command, params } = action;
           commandHandlersWithRender[command](
-            this.eventSubject.next,
+            next,
             params,
             effectHandlers,
             app,
