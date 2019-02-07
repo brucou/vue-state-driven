@@ -5,8 +5,8 @@ export const COMMAND_RENDER = 'COMMAND_RENDER';
  *
  * @param {String} name name of the Vue component to create
  * @param Vue Vue import
- * @param renderComponent Vue component which will be use by the rendering command handler
- * @param {Array<String>} props array of property names for the renderComponent
+ * @param renderWith Vue component which will be use by the rendering command handler
+ * @param {Array<String>} props array of property names for the renderWith
  * @param fsm
  * @param commandHandlers
  * @param effectHandlers
@@ -15,8 +15,9 @@ export const COMMAND_RENDER = 'COMMAND_RENDER';
  * @param {{NO_ACTION, initialEvent, ...}} options
  * @returns {CombinedVueInstance<V extends Vue, Object, Object, Object, Record<never, any>>}
  */
-export function makeVueStateMachine({name, renderComponent, props, fsm, commandHandlers, effectHandlers, subjectFactory,
-                               options, Vue}) {
+export function makeVueStateMachine({name, renderWith, props:_props, fsm, commandHandlers, effectHandlers, subjectFactory,
+                                      options, Vue}) {
+  const props = _props.concat('next');
   const eventSubject = subjectFactory();
   const outputSubject = subjectFactory();
   const next = eventSubject.next.bind(eventSubject);
@@ -26,12 +27,14 @@ export function makeVueStateMachine({name, renderComponent, props, fsm, commandH
       const props = Object.assign({}, params, { next, hasStarted : true });
 
       app.set(props);
+      debugger
     }
   };
   const commandHandlersWithRender = Object.assign({}, commandHandlers, vueRenderCommandHandler);
 
   // DOC : `next` is reserved and cannot be used as a property for the render component
-  const initPropsObj = props.concat('next').reduce((acc, key) => (acc[key]=void 0, acc), {});
+  const initPropsObj = props.reduce((acc, key) => (acc[key]=void 0, acc), {});
+  const currentPropsObj = Object.assign({}, initPropsObj);
   const initialData = Object.assign({}, initPropsObj, {
     hasStarted: false,
     next,
@@ -43,18 +46,19 @@ export function makeVueStateMachine({name, renderComponent, props, fsm, commandH
 
   function render(h){
     const app = this;
+    props.reduce((acc, key) => (acc[key]=app[key], acc),currentPropsObj);
+    console.log('child props', currentPropsObj)
 
     return app.hasStarted
-      ? h(renderComponent, {
-      // copy the props from the machine vue component to the render component
-      props : props.reduce((acc, key) => (acc[key]=app[key], acc),{})
-    }, [])
+      ? h(renderWith, {
+        // copy the props from the machine vue component to the render component
+        props : Object.assign({}, currentPropsObj)
+      }, [])
       : h('div', {}, '')
   }
 
   return Vue.component(name, {
     render,
-    props : props,
     data: function () {
       return initialData
     },
