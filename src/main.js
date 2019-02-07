@@ -3,6 +3,7 @@ export const COMMAND_RENDER = 'COMMAND_RENDER';
 
 /**
  *
+ * @param {String} name name of the Vue component to create
  * @param Vue Vue import
  * @param renderComponent Vue component which will be use by the rendering command handler
  * @param {Array<String>} initProps array of propery names for the renderComponent
@@ -14,10 +15,11 @@ export const COMMAND_RENDER = 'COMMAND_RENDER';
  * @param {{NO_ACTION, initialEvent, ...}} options
  * @returns {CombinedVueInstance<V extends Vue, Object, Object, Object, Record<never, any>>}
  */
-export function makeVueStateMachine({renderComponent, initProps, fsm, commandHandlers, effectHandlers, subjectFactory,
+export function makeVueStateMachine({name, renderComponent, initProps, fsm, commandHandlers, effectHandlers, subjectFactory,
                                options, Vue}) {
-  const propsViewComponentTemplate = initProps.map(key => `v-bind:${key}="${key}"`).join(" ");
-  const initPropsObj = initProps.reduce((acc, key) => (acc[key]=void 0, acc), {});
+  const eventSubject = subjectFactory();
+  const outputSubject = subjectFactory();
+
   const vueRenderCommandHandler = {
     [COMMAND_RENDER]: (next, params, effectHandlers, app) => {
       const props = Object.assign({}, params, { next, hasStarted : true });
@@ -26,24 +28,33 @@ export function makeVueStateMachine({renderComponent, initProps, fsm, commandHan
     }
   };
   const commandHandlersWithRender = Object.assign({}, commandHandlers, vueRenderCommandHandler);
-  const template = ['<View v-if="hasStarted"', propsViewComponentTemplate, '></View>'].join(' ');
 
-  console.debug('template', template);
+  const initPropsObj = initProps.reduce((acc, key) => (acc[key]=void 0, acc), {});
+  const initialData = Object.assign({}, initPropsObj, {
+    hasStarted: false,
+    next: eventSubject.next,
+    eventSubject,
+    outputSubject,
+    options : Object.assign({}, options),
+    NO_ACTION: options.NO_ACTION || NO_OUTPUT
+  });
 
-  const eventSubject = subjectFactory();
-  const outputSubject = subjectFactory();
+  function render(h){
+    const app = this;
 
-  return new Vue({
-    template,
+    return app.hasStarted
+      ? h(renderComponent, {
+      // copy the props from the machine vue component to the render component
+      props : initProps.reduce((acc,key) => (acc[key]=app[key], acc),{})
+    }, [])
+      : h('div', {}, '')
+  }
+
+  return Vue.component(name, {
+    render,
+    props : initProps,
     data: function () {
-      return Object.assign({}, initPropsObj, {
-        hasStarted: false,
-        next: eventSubject.next,
-        eventSubject,
-        outputSubject,
-        options : Object.assign({}, options),
-        NO_ACTION: options.NO_ACTION || NO_OUTPUT
-      })
+      return initialData
     },
     methods: {
       set: function (stateObj) {
@@ -72,8 +83,5 @@ export function makeVueStateMachine({renderComponent, initProps, fsm, commandHan
 
       this.options.initialEvent && this.eventSubject.next(this.options.initialEvent);
     },
-    components: {
-      View: renderComponent
-    }
   })
 }
