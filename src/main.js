@@ -27,12 +27,13 @@ export function makeVueStateMachine({name, renderWith, props:_props, fsm, comman
       const props = Object.assign({}, params, { next, hasStarted : true });
 
       app.set(props);
-      debugger
     }
   };
   const commandHandlersWithRender = Object.assign({}, commandHandlers, vueRenderCommandHandler);
 
   // DOC : `next` is reserved and cannot be used as a property for the render component
+  // DOC : `next` must be a prop of the render component :-)
+  // DOC : props must be defined as usual in the props array property for the render component
   const initPropsObj = props.reduce((acc, key) => (acc[key]=void 0, acc), {});
   const currentPropsObj = Object.assign({}, initPropsObj);
   const initialData = Object.assign({}, initPropsObj, {
