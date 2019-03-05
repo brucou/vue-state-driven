@@ -3,7 +3,7 @@
   "name": "vue-state-driven",
   "version": "0.3.0",
   "description": "vue state machine component",
-  "main": "dist/vue-state-driven-es.js",
+  "main": "dist/vue-state-driven-cjs.js",
   "module": "dist/vue-state-driven-es.js",
   "files": [
     "DISCLAIMER",
