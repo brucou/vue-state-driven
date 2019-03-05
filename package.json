@@ -18,8 +18,7 @@
     "build": "rollup -c"
   },
   "dependencies": {
-    "state-transducer": "0.10.2",
-    "vue": "^2.5.2"
+    "state-transducer": "0.10.2"
   },
   "devDependencies": {
     "autoprefixer": "^7.1.2",
