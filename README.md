@@ -18,9 +18,7 @@ taken from other similar libraries
 **TODO** :
 ! vue example for the password component
 - vue example for the image search component
-- don' use the online movie search if I can't fix the css...
 - test with transducer latest version
-- try to see if vue devtools can be used to visualize change in the rendering
 
 # Modelling user interfaces with state machines
 We are going all along to refer to a image search application example to illustrate our 
