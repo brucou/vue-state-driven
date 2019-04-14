@@ -14,12 +14,6 @@ resulting architecture
 - we finally explain and document the actual API together with a [simple example](#example) of use, 
 taken from other similar libraries
 
-
-**TODO** :
-! vue example for the password component
-- vue example for the image search component
-- test with transducer latest version
-
 # Modelling user interfaces with state machines
 We are going all along to refer to a image search application example to illustrate our 
 argumentation. Cf. [Example section](#example) for more details.
