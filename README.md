@@ -117,20 +117,31 @@ the machine interface and contracts:
 - we use dependency injection to pass the modules responsible for effects to the `<Machine />` component
 
 # API
-## ` makeVueStateMachine({name, props, fsm, eventHandler, preprocessor, commandHandlers, effectHandlers, options, renderWith, Vue })`
+## ` makeVueStateMachine({name, renderWith, props, fsm, eventHandler, preprocessor, commandHandlers, effectHandlers, options, Vue })`
 
 ### Description
-**TODO** I am here
+We expose a `makeVueStateMachine` Vue component factory which will return  Vue component which 
+implements the user interface specified by the parameters the factory receives. The parameters 
+are as follows:
 
-We expose a `makeVueStateMachine` Vue component factory which will hold the state machine and 
-implement its behaviour using Vue's API. The `Machine` component behaviour is specified by its 
-props. Those 
-props reflect : the underlying machine, pre-processing of interfaced 
-system's raw events, a set of functions executing machine commands and effects on the 
-interfaced systems. The DOM rendering command handler is imposed by the `<Machine />` component 
-but can be customized via `effectHandlers[COMMAND_RENDER]` (see example).
+- `name`: the name for the Vue component to be created
+- `props`: the *props* that the `renderWith` component accepts
+- `renderWith`: the Vue component which will be used to render the user interface
+  - Note that the `renderWith` must declare the same `props`, plus a `next` *prop* as `props`
+  - `next` is a subject which is injected and connects to the preprocessor
+- `fsm`: the state machine which specifies the user interface behaviour
+- `eventHandler`: as of now `eventHandler.subjectFactory` is a factory with no parameters which 
+returns a subject, i.e. an object which implements the observer and observable interface. That 
+subject is used by the machine to received inputs/events from the interfaced systems.  
+- `preprocessor`: the preprocessor translates events into machine inputs
+- `commandHandlers`: specifies how to handle commands issued by the state machine
+- `effectHandlers`: specifies how to perform effects. The `` object is passed to all command 
+handlers so they may delegate the execution of effects. This in turn allows for easy mocking and 
+testing.
+- `options`: miscellaneous customizing options (such as debug, initial event). 
+- `Vue`: `Vue` object to be injected into the Vue component factory
 
-Our `Machine` component expects some props but does not expect children components. 
+The created `Vue` component expects some props but does not expect children components. 
 
 ### Example
 To showcase usage of our react component with our machine library, we will implement an [image 
@@ -143,13 +154,13 @@ For illustration, the user interface starts like this :
 
 ![image search interface](https://i.imgur.com/mDQQTX8.png?1) 
 
-[Click here](https://codesandbox.io/s/yklw04n7qj) for a live demo.
+[Click here](https://codesandbox.io/s/rryx27pppq) for a live demo.
 
 The user interface behaviour can be modelized by the following machine:
 
 ![machine visualization](assets/image%20gallery%20state%20cat.png)
 
-Let's see how to integrate that into a React codebase using our `Machine` component.
+Let's see how to integrate that into a Vue codebase using our factory.
 
 #### Encoding the machine graph
 The machine is translated into the data structure expected by the supporting `state-transducer` 
@@ -245,7 +256,6 @@ export const imageGalleryFsmDef = {
   },
   updateState: applyJSONpatch,
 }
-
 ```
 
 Note: 
@@ -266,67 +276,89 @@ respects the defined interface.
 
 #### A stateless component to render the user interface
 The machine **controls** the user interface via the issuing of render commands, which include 
-*props* for a user-provided React component. Here, those *props* are fed into `GalleryApp`, which
+*props* for a user-provided Vue component. Here, those *props* are fed into `GalleryApp`, which
  renders the interface: 
  
  ```javascript
-export function GalleryApp(props){
-  // NOTE: `query` is not used! :-) Because we use a uncontrolled component, we need not use query
-  const { query, photo, items, next, gallery: galleryState } = props;
+<template>
+    <div class=".ui-app" v-bind:data-state="gallery">
+        <Form v-bind:galleryState="gallery"
+              v-bind:onSubmit="onSubmit"
+              v-bind:onClick="onCancelClick">
+        </Form>>
+        <Gallery v-bind:galleryState="gallery"
+                 v-bind:items="items"
+                 v-bind:onClick="onGalleryClick">
+        </Gallery>
+        <Photo v-bind:galleryState="gallery"
+               v-bind:photo="photo"
+               v-bind:onClick="onPhotoClick">
+        </Photo>
+    </div>
+</template>
 
-  return div(".ui-app", { "data-state": galleryState }, [
-    h(
+<script>
+  import Form from "./Form";
+  import Gallery from "./Gallery";
+  import Photo from "./Photo";
+
+  export default {
+    props : ["query", "photo", "items", "gallery", "next"],
+    components: {
       Form,
-      {
-        galleryState,
-        onSubmit: (ev, formRef) => next(["onSubmit", ev, formRef]),
-        onClick: ev => next(["onCancelClick"])
-      },
-      []
-    ),
-    h(
       Gallery,
-      { galleryState, items, onClick: item => next(["onGalleryClick", item]) },
-      []
-    ),
-    h(Photo, { galleryState, photo, onClick: ev => next(["onPhotoClick"]) }, [])
-  ]);
-}
+      Photo,
+    },
+    methods: {
+      // reminder : do not use fat arrow functions!
+      onSubmit: function(ev, formRef) {
+        return this.next(["onSubmit", ev, formRef]);
+      },
+      onCancelClick: function(ev) {
+        return this.next(["onCancelClick"])
+      },
+      onGalleryClick: function(item) {
+        return this.next(["onGalleryClick", item]);
+      },
+      onPhotoClick: function(ev) {
+        return this.next(["onPhotoClick"]);
+      },
+    }
+  };
+</script>
 
 ```
 
 Note:
-- `GalleryApp` is a **stateless functional component** which only concerns itself with rendering 
+- `GalleryApp` is a **stateless component** which only concerns itself with rendering 
 the interface. The interface state concerns (representation, storage, retrieval, update, etc.) are 
 handled by the state machine.
 
-
-#### Implementing the user interface with `<Machine />` 
+#### Implementing the user interface 
 We have our state machine defined, we have a component to render the user interface. We now have 
 to implement the full user interface, e.g. processing events, and execute the appropriate 
-commands in response. As we will use the `<Machine />` component, we have to 
+commands in response. As we will use the `makeVueStateMachine` factory, we have to 
 specify the corresponding *props* for it. Those *props* include, as the architecture indicates, 
 an interface by which the user interface sends events to a preprocessor which transforms them 
 into inputs for the state machine, which produces commands which are processed by command 
 handlers, which delegate the actual effect execution to effect handlers: 
 
 ```javascript
-import { COMMAND_RENDER, COMMAND_SEARCH, NO_INTENT } from "./properties"
-import { filter, map } from "rxjs/operators"
-import { runSearchQuery, destructureEvent } from "./helpers"
+import { COMMAND_SEARCH, NO_INTENT } from "./properties"
+import {COMMAND_RENDER} from "vue-state-driven"
 import { INIT_EVENT } from "state-transducer"
-import { Subject } from "rxjs/index"
-import { GalleryApp } from "./imageGalleryComponent"
-import Flipping from "flipping"
-import React from "react";
+import  GalleryApp from "./GalleryApp"
+import { destructureEvent, runSearchQuery } from "./helpers"
+import { filter, map } from "rxjs/operators"
+import { Subject } from "rxjs"
 
-const flipping = new Flipping();
 const stateTransducerRxAdapter = {
-  subjectFactory : () => new Subject()
+  subjectFactory: () => new Subject()
 };
 
-export const imageGalleryReactMachineDef = {
-  options: { initialEvent: [ "START"] },
+export const imageGalleryVueMachineDef = {
+  props: ["query", "photo", "items", "gallery"],
+  options: { initialEvent: ["START"] },
   renderWith: GalleryApp,
   eventHandler: stateTransducerRxAdapter,
   preprocessor: rawEventSource =>
@@ -341,7 +373,6 @@ export const imageGalleryReactMachineDef = {
         else if (rawEventName === "START") {
           return { START: void 0 };
         } else if (rawEventName === "onSubmit") {
-          e.persist();
           e.preventDefault();
           return { SEARCH: ref.current.value };
         } else if (rawEventName === "onCancelClick") {
@@ -373,7 +404,7 @@ export const imageGalleryReactMachineDef = {
       effectHandlers
         .runSearchQuery(query)
         .then(data => {
-          next(["SEARCH_SUCCESS",data.items]);
+          next(["SEARCH_SUCCESS", data.items]);
         })
         .catch(error => {
           next(["SEARCH_FAILURE", void 0]);
@@ -382,13 +413,9 @@ export const imageGalleryReactMachineDef = {
   },
   effectHandlers: {
     runSearchQuery: runSearchQuery,
-    [COMMAND_RENDER]: (machineComponent, renderWith, params, next) => {
-      // Applying flipping animations : read DOM before render, and flip after render
-      flipping.read();
-      machineComponent.setState(
-        { render: React.createElement(renderWith, Object.assign({}, params, { next }), []) },
-        () => flipping.flip()
-      );
+    [COMMAND_RENDER]: (machineComponent, params, next) => {
+      const props = Object.assign({}, params, { next, hasStarted: true });
+      machineComponent.set(props);
     }
   }
 };
@@ -403,90 +430,83 @@ interfaced systems
 - inputs received from the interfaced systems (network responses or user inputs) are translated 
 into inputs for the state machine by the preprocessor (`preprocessor`)
 - our interface only performs two actions on its interfaced systems : rendering screens, and 
-querying remote content. As the rendering command is implemented by the `<Machine />` component, `commandHandlers` only implement the `COMMAND_SEARCH` command (`commandHandlers`).
+querying remote content. As the rendering command is implemented by the `makeVueStateMachine` factory, 
+`commandHandlers` only implement the `COMMAND_SEARCH` command (`commandHandlers`).
 - the `COMMAND_SEARCH` command use the `runSearchQuery` effect runner (`effectHandlers`)
 - the render command can be customized if necessary by specifying an alternative render 
-implementation. Here we wanted to use the `Flipping` animation library, which requires running 
-some commands before and after updating the DOM. That forced us to customize the rendering.
+implementation. Here for educational purposes, we reproduced the default render handler.
 
 #### The final application set-up
 We now have all the pieces to integrate for our application:
 
 ```javascript
-import ReactDOM from "react-dom";
+import Vue from 'vue'
+import { createStateMachine, decorateWithEntryActions, fsmContracts } from "state-transducer";
+import { makeVueStateMachine } from "vue-state-driven";
+import { imageGalleryVueMachineDef } from "./imageGalleryVueMachineDef";
+import { imageGalleryFsmDef } from "./fsm"
 import "./index.css";
-import { Machine } from "react-state-driven";
-import { imageGalleryFsmDef } from "./imageGalleryFsm";
-import { imageGalleryReactMachineDef } from "./imageGalleryReactMachineDef";
-import h from "react-hyperscript";
-import {
-  createStateMachine,
-  decorateWithEntryActions,
-  fsmContracts
-} from "state-transducer";
+import "./gallery.css";
+
+Vue.config.productionTip = false
 
 const fsmSpecsWithEntryActions = decorateWithEntryActions(
   imageGalleryFsmDef,
   imageGalleryFsmDef.entryActions,
   null
 );
-const fsm = createStateMachine(fsmSpecsWithEntryActions, {
-  debug: { console, checkContracts: fsmContracts }
-});
-
-ReactDOM.render(
-  // That is the same as <Machine fsm=... preprocessor=... ... />
-  h(Machine, Object.assign({}, imageGalleryReactMachineDef, { fsm }), []),
-  document.getElementById("root")
+const fsm = createStateMachine(
+  fsmSpecsWithEntryActions,
+  { debug: { console, checkContracts: fsmContracts } }
 );
+
+makeVueStateMachine(Object.assign({ Vue, name: 'App', fsm }, imageGalleryVueMachineDef));
+
+/* eslint-disable no-new */
+new Vue({
+  el: '#app',
+  template: '<App/>'
+})
 
 ```
 
 Note:
 - `decorateWithEntryActions` which a plugin which allows to have a given machine produce 
-predefind actions on entering a control state. We use it here to render a given screen on entry 
+predefined actions on entering a control state. We use it here to render a given screen on entry 
 in a given control state. 
 - debug options can be configured as needed. Currently trace messages can be output to a `console` 
 passed by the API user. Additionally, machine contracts can be checked (useful in development mode) 
 
 ### A typical machine run
-Alright, now let's leverage the example to explain what is going on here together with the 
-`<Machine />` semantics.
+Alright, now let's leverage the example to explain the factory semantics.
 
-First of all, we use `React.createElement` but you 
-could just as well use jsx `<Machine ... />`, that really is but an implementation detail. In our
- implementation we are mostly using core React API and [hyperscript](https://github.com/mlmorg/react-hyperscript) rather than jsx. Then keep in mind that when we write 'the 
- machine', we refer to the state machine whose graph has been given previously. When we want to 
- refer to the `Machine` React component, we will always specifically precise that.
- 
 Our state machine is basically a function which takes an input and returns outputs. The inputs 
 received by the machine are meant to be mapped to events triggered by the user through the user 
 interface. The outputs from the machine are commands representing what commands/effects to perform 
 on the interfaced system(s). The mapping between user/system events and machine input is 
-performed by `preprocessor`. The commands output  by the machine are mapped to handlers gathered 
-in `commandHandlers` so our `Machine`  component knows how to run a command when it receives one.
+performed by `preprocessor`. The commands output by the machine are mapped to handlers gathered 
+in `commandHandlers` so our Vue component knows how to run a command when it receives one.
 
 A run of the machine would then be like this :
 - The machine will encapsulate the following properties as part of its extended state : `query`, 
 `items`, `photo`. This extended state will be updated according to the machine specifications in 
 function of the input received by the machine and the control state the machine is in.  
 - The initial extended state is `{ query: '', items: [], photo: undefined }`
-- The machine transitions automatically from the initial state to the `start` control state.
+- The machine transitions automatically from the initial state to the `start` control state
   - on doing so, it issues one command : render `GalleryApp`. Render commands have a default 
-  handler which renders the `React.Element` passed as parameter. That element can be computed 
-  from the extended state of the state machine and the event data. An event emitter (`next` in 
-  code sample above)
-   is passed to allow for the element to send events to the state machine.
-- The `Machine` component executes the render command and renders a gallery app with an
-   empty query text input, no images(`items`), and no selected image (`photo`).
+  handler which renders the `renderWith` Vue component passed as parameter with the *props* 
+  included in the command. An  event emitter (`next` in code sample above) is passed as *prop* to allow for the element to send events to the state 
+  machine
+- The component executes the render command and renders a gallery app with an empty 
+query text input, no images(`items`), and no selected image (`photo`)
 - The user enters some text in the text input
 - The user clicks the `Search` button. 
-  - A `submit` event is triggered.
+  - A `submit` event is triggered
   - The value of the input field is read, and the `submit` event is transformed into a 
   machine input `{SEARCH : <query>}` which is passed to the machine
   - The machine, per its specifications, outputs two commands : `COMMAND_SEARCH` and render 
   `GalleryApp`, and transitions to `loading` control state 
-  - The `Machine` component executes the two commands : the gallery is rendered (this time with a
+  - The component executes the two commands : the gallery is rendered (this time with a
    `Cancel` button appearing), and an API call is made. Depending on the eventual result of that 
    API call, the command handler will trigger a `SEARCH_SUCCESS` or `SEARCH_FAILURE` event.
 - The search is successful : the `SEARCH_SUCCESS` event is transformed into a machine 
@@ -497,10 +517,10 @@ input `{SEARCH_SUCCESS: items}`.
   - the user or an interfaced system (network, etc.) triggers an event X,
   - that event will be transformed into a machine input (as per `preprocessor`), 
   - the machine will, as per its specs, update its extended state and issue command(s) 
-  - Issued commands will be executed by the `Machine` component, as per `commandHandlers`
+  - Issued commands will be executed, as per `commandHandlers`
 
-This is it! Whatever the machine passed as parameter to the `Machine` component, its behaviour 
-will always be as described.
+This is it! Whatever the machine passed as parameter to the `makeVueStateMachine` factory, its 
+behaviour will always be as described.
 
 Note that this example is contrived for educational purposes:
 - we could do away with the preprocessor and have the DOM event handlers directly produce inputs in 
@@ -521,7 +541,7 @@ specifications
 the component's defined *props*
 
 ### Semantics
-- The `<Machine />` component :
+- The Vue component created by the `makeVueStateMachine` factory:
   - initializes the raw event source (subject) which receives and forwards all raw events 
   (user events and system events)
   - creates a global command handler to dispatch to user-defined command handlers
@@ -537,28 +557,24 @@ the component's defined *props*
 - The machine receives preprocessed events from the preprocessor and computes a set of commands 
 to be executed
 - The global command handler execute the incoming commands :
-  - if the command is a render command, the global handler execute directly the command in the 
-  context of the `<Machine/>` component
+  - if the command is a render command, the global handler executes directly the command with the
+   default render handler
   - if the command is not a render command, the global handler dispatches the command to the 
   user-configured command handlers
 - All command handlers are passed two arguments : 
   - an event emitter connected to the raw event source
   - an object of type `EffectHandlers` which contains any relevant dependencies needed to 
-  perform effects (that is the object passed in props to the `<Machine/>` component)
-- Render commands leads to definition of React components with DOM event handlers. Those event 
+  perform effects (that is the object passed in parameter to the `makeVueStateMachine` factory)
+- The `renderWith` Vue component may have DOM event handlers. Those event 
   handlers can pass their raw events (DOM events) to the machine thanks to the raw event source 
-  emitter
+  emitter `next` injected as *prop*
 - Non-render commands leads to the execution of procedures which may be successful or fail. The
    command handler can pass back information to the machine thanks to the injected event emitter. 
 - The raw event source is created with the subject factory passed as parameters. That subject must 
 implement the `Observer` interface (in particular have the `next, complete, error` properties 
 defined, with all of them being **synchronous** functions) and the `Observable` interface 
 (`subscribe` property)
-- The event source is terminated when the `<Machine/>` component is removed from the screen 
-(`componentWillUnmount` lifecycle method)
-
-## `testMachineComponent(testAPI, testScenario, machineDefinition)`
-Cf. [Testing](./Testing.md)
+- The event source is terminated when the factory-created component is removed from the screen 
 
 # Tips and gotchas
 - most of the time `preprocessor` will just change the name of the event. You can 
@@ -593,7 +609,7 @@ second query is executed. There is in this case a risk of the user interface dis
 of abstraction. A command handler may for instance recreate Rxjs's `switchMap` by keeping a record
  of in-flight queries.
 - the interfaced systems can communicate with the machine via an event emitter. The 
-`props.renderWith` React component is injected a `next` *prop* which is an event emitter which 
+`renderWith` Vue component is injected a `next` *prop* which is an event emitter which 
 relays events to the machine's raw event source. Associated with DOM event handlers, this allows 
 the machine to receive DOM events. Command handlers are also passed the `next` event emitter, and
  can use it to send to the machine any messages from the interfaced systems. 
