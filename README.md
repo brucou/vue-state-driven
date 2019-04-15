@@ -270,9 +270,10 @@ behaviour of the interface
 logic, we extract it into the `entryActions` property and we will use later the corresponding 
 `state-transducer` plugin which makes use of this data
 - `updateState` specifies how to update the extended state of the machine from a description of 
-the updates to perform. We use [JSON patch](http://jsonpatch.com/) in our example. A redux-like 
-reducer, proxy-based `immer.js` or any user-provided function could also be used, as long as it 
-respects the defined interface.
+the updates to perform. We use [JSON patch](http://jsonpatch.com/) in our example. In this 
+context, a patch of `updates: [{ op: "add", path: "/photo", value: item }],` will entail adding 
+`item` in lieu of the `photo` property of the patched object. A redux-like reducer, proxy-based 
+`immer.js` or any user-provided function could also be used, as long as it respects the defined interface.
 
 #### A stateless component to render the user interface
 The machine **controls** the user interface via the issuing of render commands, which include 
