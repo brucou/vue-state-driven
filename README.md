@@ -63,13 +63,9 @@ exhibit the same property[^1]. The causality property means state machines are a
 - only the preprocessor and mediator can perform effects on the user interface, which helps 
 testing, tracing and debugging 
 
-We also have achieved greater modularity: our parts are coupled only through their interface. For
- instance, we use in our example below `Rxjs` for preprocessing events, and [`state-transducer`]
- (https://github.com/brucou/state-transducer) as state machine library. We could easily switch to
-   [`most`](https://github.com/cujojs/most) and [`xstate`](https://github.com/davidkpiano/xstate)
-    if the need be, or to a barebone event emitter (like `emitonoff`) by simply building 
-    interface adapters.
-
+We also have achieved greater modularity: our parts are coupled only through their interface. For instance, we use in our example below `Rxjs` for preprocessing events, and [`state-transducer`](https://github.com/brucou/state-transducer) as state machine library. We could easily switch to [`most`](https://github.com/cujojs/most) and [`xstate`](https://github.com/davidkpiano/xstate)
+ if the need be, or to a barebone event emitter (like [`emitonoff`](https://github.com/konsumer/emitonoff)) by simply building interface adapters.
+ 
 There are more benefits but this is not the place to go about them. Cf:
 - [User interfaces as reactive systems](https://brucou.github.io/posts/user-interfaces-as-reactive-systems/)
 - [Pure UI](https://rauchg.com/2015/pure-ui)
@@ -84,10 +80,8 @@ with the mediator)
       found that term could be confusing.          
 
 # Installation
-> `react`  is a peer dependency.
-
 ```sh
-npm install react-state-driven
+npm install
 ```
 
 # Code examples
@@ -95,31 +89,23 @@ For the impatient ones, you can directly review the available demos:
  
 | Code playground | Machine | Screenshot |  
 |:----|:----:|:----:|
-|[flickr image search](https://codesandbox.io/s/yklw04n7qj)| ![](./assets/image%20gallery%20state%20cat.png)| ![image search interface](https://i.imgur.com/mDQQTX8.png?1) |
-|[TMDb movie search](https://codesandbox.io/s/ym8vpqm7m9)| ![graph](https://github.com/brucou/movie-search-app/raw/specs-all/article/movie%20search%20good%20fsm%20corrected%20flowchart%20no%20emphasis%20switchMap.png)| ![TMDb online interface screenshot](https://github.com/brucou/movie-search-app/raw/specs-all/article/app%20screenshot%20query%20detail%20-%20success.png)|
-
+|[password meter](https://codesandbox.io/s/l9o1qknoz7)| ![graph](https://github.com/brucou/state-transducer/raw/master/assets/password%20submit%20fsm.png)| ![password meter demo](https://github.com/brucou/state-transducer/raw/master/assets/password%20selector%20demo%20animated.png)|
+|[flickr image search](https://codesandbox.io/s/rryx27pppq)| ![](./assets/image%20gallery%20state%20cat.png)| ![image search interface](https://i.imgur.com/mDQQTX8.png?1) |
 
 
 # API design goals
 We want to have an integration which is generic enough to accommodate a large set of use cases, 
-and specific enough to be able to take advantage as much as possible of the `React` ecosystem 
+and specific enough to be able to take advantage as much as possible of the `Vue` ecosystem 
 and API. Unit-testing should ideally be based on the specifications of the behaviour of the 
 component rather than its implementation details, and leverage the automatic test generator of 
 the underlying `state-tranducer` library. In particular :
 
-- it should be seamless to use both controlled and uncontrolled components
-- it should be possible to use without risk of interference standard React features like `Context`
-- it should use the absolute minimum React features internally, in order to favor for instance a 
-painless port to React copycats (Preact, etc.)
-- non-React functionalities should be coupled only through interfaces, allowing to use any 
+- it should be possible to use without risk of interference standard Vue features
+- non-Vue functionalities should be coupled only through interfaces, allowing to use any 
 suitable implementation
-- the specifics of the implementation should not impact testing (hooks, suspense, context, etc.)
+- the specifics of the implementation should not impact testing
 
 As a result of these design goals :
-- we do not use React hooks, context, portal, fragments, `jsx`, and use the minimum React lifecycle 
-hooks
-- the component user can of course use the whole extent of the API at disposal, those restrictions 
-only concern our implementation of the `<Machine />` component.
 - we defined interfaces for extended state updates (reducer interface), event processing 
 (observer and observable interfaces).
 - any state machine implementation can be substituted to our library provided that it respects 
@@ -131,11 +117,14 @@ the machine interface and contracts:
 - we use dependency injection to pass the modules responsible for effects to the `<Machine />` component
 
 # API
-## ` <Machine fsm, eventHandler, preprocessor, commandHandlers, effectHandlers, options, renderWith />`
+## ` makeVueStateMachine({name, props, fsm, eventHandler, preprocessor, commandHandlers, effectHandlers, options, renderWith, Vue })`
 
 ### Description
-We expose a `<Machine />` React component which will hold the state machine and implement its 
-behaviour using React's API. The `Machine` component behaviour is specified by its props. Those 
+**TODO** I am here
+
+We expose a `makeVueStateMachine` Vue component factory which will hold the state machine and 
+implement its behaviour using Vue's API. The `Machine` component behaviour is specified by its 
+props. Those 
 props reflect : the underlying machine, pre-processing of interfaced 
 system's raw events, a set of functions executing machine commands and effects on the 
 interfaced systems. The DOM rendering command handler is imposed by the `<Machine />` component 
