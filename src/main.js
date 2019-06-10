@@ -28,10 +28,9 @@ export function makeVueStateMachine(vueMachineDef) {
   // To make that work with Vue, we put the props for `renderWith` in the `data` of the Vue component and we update
   // that `data` with the new props from the render command produced by the embedded state machine
   const { name, renderWith, fsm, commandHandlers, effectHandlers, eventHandler, preprocessor, options, Vue } = vueMachineDef;
-  const {subjectFactory} = eventHandler;
   const initialEvent = options && options.initialEvent;
   const props = vueMachineDef.props.concat('next');
-  const eventSubject = subjectFactory();
+  const eventSubject = eventHandler
   const next = eventSubject.next.bind(eventSubject);
 
   const vueRenderCommandHandler = {

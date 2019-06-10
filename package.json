@@ -1,7 +1,7 @@
 {
   "private": false,
   "name": "vue-state-driven",
-  "version": "0.7.0",
+  "version": "0.8.0",
   "description": "vue state machine component",
   "main": "dist/vue-state-driven-cjs.js",
   "module": "dist/vue-state-driven-es.js",
