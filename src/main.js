@@ -1,6 +1,5 @@
-import { NO_OUTPUT } from "state-transducer"
+import { NO_OUTPUT, COMMAND_RENDER } from "kingly"
 
-export const COMMAND_RENDER = 'COMMAND_RENDER';
 const identity = x => x;
 
 function defaultRenderHandler(component, params, next){

@@ -1,7 +1,7 @@
 {
   "private": false,
   "name": "vue-state-driven",
-  "version": "0.8.0",
+  "version": "0.9.0",
   "description": "vue state machine component",
   "main": "dist/vue-state-driven-cjs.js",
   "module": "dist/vue-state-driven-es.js",
@@ -18,7 +18,7 @@
     "build": "rollup -c"
   },
   "dependencies": {
-    "state-transducer": "0.13.4"
+    "kingly": "0.18.2"
   },
   "devDependencies": {
     "autoprefixer": "^7.1.2",
